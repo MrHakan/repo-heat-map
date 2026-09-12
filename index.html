@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Repository activity heat map and GitHub statistics for MrHakan.">
+  <title>repo heat map · MrHakan</title>
+  <link rel="preconnect" href="https://api.github.com">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="./" aria-label="repo heat map home">
+        <span class="brand-mark" aria-hidden="true">◫</span>
+        <span>repo heat map</span>
+      </a>
+      <nav class="header-actions" aria-label="Page controls">
+        <span id="apiStatus" class="api-status" title="GitHub API status">loading…</span>
+        <button id="refreshButton" class="button" type="button">refresh</button>
+        <a class="button" href="https://github.com/MrHakan" target="_blank" rel="noreferrer">github ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="shell page">
+    <section class="intro" aria-labelledby="pageTitle">
+      <div>
+        <p class="eyebrow">github / MrHakan</p>
+        <h1 id="pageTitle">Repository activity</h1>
+        <p class="lede">A compact view of repository activity, commit history and public repo statistics.</p>
+      </div>
+      <div class="updated-wrap">
+        <span>updated</span>
+        <time id="updatedAt">—</time>
+      </div>
+    </section>
+
+    <section id="summary" class="stat-grid" aria-label="Repository summary">
+      <article class="stat"><span class="stat-label">public repos</span><strong id="repoCount">—</strong></article>
+      <article class="stat"><span class="stat-label">stars</span><strong id="starCount">—</strong></article>
+      <article class="stat"><span class="stat-label">forks</span><strong id="forkCount">—</strong></article>
+      <article class="stat"><span class="stat-label">open issues</span><strong id="issueCount">—</strong></article>
+      <article class="stat"><span class="stat-label">active · 90d</span><strong id="activeCount">—</strong></article>
+    </section>
+
+    <section class="panel heat-panel" aria-labelledby="heatTitle">
+      <div class="panel-head">
+        <div>
+          <p class="panel-kicker">last 52 weeks</p>
+          <h2 id="heatTitle">Repository commit heat map</h2>
+        </div>
+        <div class="legend" aria-label="Commit intensity legend">
+          <span>less</span>
+          <i data-level="0"></i><i data-level="1"></i><i data-level="2"></i><i data-level="3"></i><i data-level="4"></i>
+          <span>more</span>
+        </div>
+      </div>
+      <p class="panel-note">Tracks up to 12 of the most recently active, non-archived repositories. Each cell is one week of repository commits.</p>
+      <div id="heatmapWrap" class="heatmap-wrap" aria-live="polite">
+        <div class="loading-block">loading commit activity…</div>
+      </div>
+    </section>
+
+    <section class="two-col">
+      <article class="panel" aria-labelledby="trendTitle">
+        <div class="panel-head compact">
+          <div>
+            <p class="panel-kicker">tracked repositories</p>
+            <h2 id="trendTitle">Weekly commits</h2>
+          </div>
+          <strong id="commitTotal" class="panel-number">—</strong>
+        </div>
+        <div id="trendChart" class="chart-area loading-block">loading…</div>
+      </article>
+
+      <article class="panel" aria-labelledby="languageTitle">
+        <div class="panel-head compact">
+          <div>
+            <p class="panel-kicker">primary language</p>
+            <h2 id="languageTitle">Repository mix</h2>
+          </div>
+        </div>
+        <div id="languageChart" class="bar-list loading-block">loading…</div>
+      </article>
+    </section>
+
+    <section class="two-col">
+      <article class="panel" aria-labelledby="starsTitle">
+        <div class="panel-head compact">
+          <div>
+            <p class="panel-kicker">public repositories</p>
+            <h2 id="starsTitle">Most starred</h2>
+          </div>
+        </div>
+        <div id="starChart" class="bar-list loading-block">loading…</div>
+      </article>
+
+      <article class="panel" aria-labelledby="recentTitle">
+        <div class="panel-head compact">
+          <div>
+            <p class="panel-kicker">pushed recently</p>
+            <h2 id="recentTitle">Recent activity</h2>
+          </div>
+        </div>
+        <div id="recentList" class="recent-list loading-block">loading…</div>
+      </article>
+    </section>
+
+    <section class="panel repos-panel" aria-labelledby="reposTitle">
+      <div class="panel-head repos-head">
+        <div>
+          <p class="panel-kicker">all public repositories</p>
+          <h2 id="reposTitle">Repositories</h2>
+        </div>
+        <div class="repo-controls">
+          <label class="search-wrap">
+            <span class="sr-only">Search repositories</span>
+            <input id="repoSearch" type="search" autocomplete="off" placeholder="filter repositories…">
+          </label>
+          <select id="repoSort" aria-label="Sort repositories">
+            <option value="updated">recently pushed</option>
+            <option value="stars">most starred</option>
+            <option value="forks">most forked</option>
+            <option value="name">name</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>repository</th><th>language</th><th>stars</th><th>forks</th><th>pushed</th></tr>
+          </thead>
+          <tbody id="repoTableBody"><tr><td colspan="5" class="loading-cell">loading repositories…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="errorBox" class="error-box" hidden>
+      <strong>Could not load all GitHub data.</strong>
+      <span id="errorText"></span>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-inner">
+      <span>repo-heat-map</span>
+      <span>data from the public GitHub REST API · cached locally</span>
+    </div>
+  </footer>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>
