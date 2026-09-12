@@ -2,6 +2,8 @@
 
 A small, dependency-free GitHub Pages dashboard for visualising repository activity and useful account-level repository statistics for **MrHakan**.
 
+**Live site:** https://mrhakan.github.io/repo-heat-map/
+
 ## What it shows
 
 - Repository commit heat map for the 12 most recently active repositories (last 52 weeks)
