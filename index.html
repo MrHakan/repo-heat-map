@@ -134,7 +134,7 @@
       </div>
     </section>
 
-    <p class="footnote">* Lifetime commits use GitHub contributor statistics. “Files touched” is the sum of changed files across default-branch commits in the last 52 weeks; repositories exceeding 1,000 commits in that window are capped and marked in tooltips/table data.</p>
+    <p class="footnote">* All commit, lifetime, line-churn and changed-file metrics come from GitHub GraphQL default-branch linear history. The 52-week views use a rolling 52-week window. Commits that exist only on unmerged branches are intentionally excluded. “Files touched” sums each commit’s changed-file count; commits where GitHub cannot calculate that value are excluded from files/commit averages.</p>
   </main>
   <script type="module" src="app.js"></script>
 </body>
