@@ -27,37 +27,47 @@
     <section class="hero">
       <p class="eyebrow">Repository telemetry</p>
       <h1>What actually changed?</h1>
-      <p class="hero-copy">A compact atlas of commits, code churn, consistency, repo age and activity across my public GitHub repositories.</p>
+      <p class="hero-copy">Not a profile card. A compact atlas of commit volume, files touched, code churn, consistency and work style across my public repositories.</p>
     </section>
 
     <section class="stat-strip" aria-label="Summary metrics">
       <article><span>repos</span><strong id="metricRepos">—</strong></article>
       <article><span>commits · 52w</span><strong id="metricCommits52">—</strong></article>
-      <article><span>lifetime commits*</span><strong id="metricLifetime">—</strong></article>
+      <article><span>files touched · 52w</span><strong id="metricFiles">—</strong></article>
       <article><span>lines touched · 52w</span><strong id="metricChurn">—</strong></article>
       <article><span>net lines · 52w</span><strong id="metricNet">—</strong></article>
+      <article><span>lifetime commits*</span><strong id="metricLifetime">—</strong></article>
     </section>
 
     <section class="panel panel-wide">
       <div class="panel-head">
-        <div>
-          <p class="kicker">Heat signature</p>
-          <h2>Repository commit heat map</h2>
-        </div>
+        <div><p class="kicker">Heat signature</p><h2>Repository commit heat map</h2></div>
         <span class="hint">52 weeks · darker means more commits</span>
       </div>
       <div id="heatmap" class="scroll-region loading">Loading commit activity…</div>
     </section>
 
-    <section class="grid grid-2">
+    <section class="grid grid-3">
       <article class="panel">
-        <div class="panel-head"><div><p class="kicker">Commit gravity</p><h2>Most commits</h2></div><span class="hint">last 52 weeks</span></div>
+        <div class="panel-head"><div><p class="kicker">Commit gravity</p><h2>Most commits</h2></div><span class="hint">52w</span></div>
         <div id="commitRanking" class="rank-chart loading">Loading…</div>
+      </article>
+      <article class="panel">
+        <div class="panel-head"><div><p class="kicker">File storm</p><h2>Most files touched</h2></div><span class="hint">sum across commits · 52w</span></div>
+        <div id="fileRanking" class="rank-chart loading">Loading…</div>
       </article>
       <article class="panel">
         <div class="panel-head"><div><p class="kicker">Code churn</p><h2>Most lines touched</h2></div><span class="hint">additions + deletions · 52w</span></div>
         <div id="churnRanking" class="rank-chart loading">Loading…</div>
       </article>
+    </section>
+
+    <section class="panel panel-wide">
+      <div class="panel-head">
+        <div><p class="kicker">Work-style map</p><h2>Commit frequency × change breadth</h2></div>
+        <span class="hint">x: commits · y: avg files/commit · dot size: code churn</span>
+      </div>
+      <div id="workStyleMap" class="scatter-chart loading">Loading…</div>
     </section>
 
     <section class="grid grid-2">
@@ -68,6 +78,17 @@
       <article class="panel">
         <div class="panel-head"><div><p class="kicker">Consistency score</p><h2>Active weeks</h2></div><span class="hint">weeks with ≥1 commit</span></div>
         <div id="consistencyChart" class="rank-chart loading">Loading…</div>
+      </article>
+    </section>
+
+    <section class="grid grid-2">
+      <article class="panel">
+        <div class="panel-head"><div><p class="kicker">Change surface</p><h2>Files touched per commit</h2></div><span class="hint">broad vs surgical commits</span></div>
+        <div id="filesPerCommitChart" class="rank-chart loading">Loading…</div>
+      </article>
+      <article class="panel">
+        <div class="panel-head"><div><p class="kicker">Commit weight</p><h2>Lines touched per commit</h2></div><span class="hint">52w average</span></div>
+        <div id="linesPerCommitChart" class="rank-chart loading">Loading…</div>
       </article>
     </section>
 
@@ -94,7 +115,10 @@
           <input id="repoSearch" type="search" placeholder="Filter repositories…" aria-label="Filter repositories" />
           <select id="repoSort" aria-label="Sort repositories">
             <option value="commits52">52w commits</option>
+            <option value="fileTouches52">files touched</option>
             <option value="churn52">52w churn</option>
+            <option value="filesPerCommit52">files / commit</option>
+            <option value="linesPerCommit52">lines / commit</option>
             <option value="consistency">consistency</option>
             <option value="lifetimeCommits">lifetime commits</option>
             <option value="pushedAt">recently pushed</option>
@@ -104,13 +128,13 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Repository</th><th>52w commits</th><th>Lines touched</th><th>Consistency</th><th>Peak week</th><th>Last push</th></tr></thead>
-          <tbody id="repoTableBody"><tr><td colspan="6">Loading…</td></tr></tbody>
+          <thead><tr><th>Repository</th><th>Commits</th><th>File touches</th><th>Lines touched</th><th>Files/commit</th><th>Consistency</th><th>Peak week</th><th>Last push</th></tr></thead>
+          <tbody id="repoTableBody"><tr><td colspan="8">Loading…</td></tr></tbody>
         </table>
       </div>
     </section>
 
-    <p class="footnote">* Lifetime commits are based on GitHub contributor statistics for non-fork public repositories and can occasionally lag behind recent pushes.</p>
+    <p class="footnote">* Lifetime commits use GitHub contributor statistics. “Files touched” is the sum of changed files across default-branch commits in the last 52 weeks; repositories exceeding 1,000 commits in that window are capped and marked in tooltips/table data.</p>
   </main>
   <script type="module" src="app.js"></script>
 </body>
