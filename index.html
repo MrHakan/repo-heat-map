@@ -4,137 +4,107 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark light" />
-  <meta name="description" content="Repository activity atlas for MrHakan" />
+  <meta name="description" content="Repository telemetry atlas for MrHakan" />
   <title>MrHakan · Repository Atlas</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="topbar">
     <div class="shell topbar-inner">
-      <div>
-        <a class="brand" href="https://github.com/MrHakan">MrHakan</a>
-        <span class="slash">/</span>
-        <span class="muted">repository-atlas</span>
-      </div>
-      <div class="top-actions">
-        <span id="generatedAt" class="status-pill">deep stats pending</span>
-        <a class="button" href="https://github.com/MrHakan/repo-heat-map">source</a>
-      </div>
+      <div><a class="brand" href="https://github.com/MrHakan">MrHakan</a><span class="slash"> / </span><span class="muted">repository-atlas</span></div>
+      <div class="top-actions"><span id="generatedAt" class="status-pill">telemetry pending</span><a class="button" href="https://github.com/MrHakan/repo-heat-map">source</a></div>
     </div>
   </header>
 
   <main class="shell page">
     <section class="hero">
       <p class="eyebrow">Repository telemetry</p>
-      <h1>What actually changed?</h1>
-      <p class="hero-copy">Not a profile card. A compact atlas of commit volume, files touched, code churn, consistency and work style across my public repositories.</p>
+      <h1>GitHub, but measurable.</h1>
+      <p class="hero-copy">Commit behavior, branch forests, code churn, PR outcomes, languages, releases, project lifecycle and oddities across my public repositories.</p>
     </section>
 
     <section class="stat-strip" aria-label="Summary metrics">
       <article><span>repos</span><strong id="metricRepos">—</strong></article>
       <article><span>commits · 52w</span><strong id="metricCommits52">—</strong></article>
+      <article><span>branches</span><strong id="metricBranches">—</strong></article>
+      <article><span>tags / releases</span><strong id="metricTagsReleases">—</strong></article>
       <article><span>files touched · 52w</span><strong id="metricFiles">—</strong></article>
       <article><span>lines touched · 52w</span><strong id="metricChurn">—</strong></article>
-      <article><span>net lines · 52w</span><strong id="metricNet">—</strong></article>
-      <article><span>lifetime commits*</span><strong id="metricLifetime">—</strong></article>
+      <article><span>merged PRs</span><strong id="metricMergedPRs">—</strong></article>
+      <article><span>merge commits · 52w</span><strong id="metricMergeShare">—</strong></article>
     </section>
 
     <section class="panel panel-wide">
-      <div class="panel-head">
-        <div><p class="kicker">Heat signature</p><h2>Repository commit heat map</h2></div>
-        <span class="hint">52 weeks · darker means more commits</span>
-      </div>
+      <div class="panel-head"><div><p class="kicker">Heat signature</p><h2>Repository commit heat map</h2></div><span class="hint">52 weeks · default branches</span></div>
       <div id="heatmap" class="scroll-region loading">Loading commit activity…</div>
     </section>
 
     <section class="grid grid-3">
-      <article class="panel">
-        <div class="panel-head"><div><p class="kicker">Commit gravity</p><h2>Most commits</h2></div><span class="hint">52w</span></div>
-        <div id="commitRanking" class="rank-chart loading">Loading…</div>
-      </article>
-      <article class="panel">
-        <div class="panel-head"><div><p class="kicker">File storm</p><h2>Most files touched</h2></div><span class="hint">sum across commits · 52w</span></div>
-        <div id="fileRanking" class="rank-chart loading">Loading…</div>
-      </article>
-      <article class="panel">
-        <div class="panel-head"><div><p class="kicker">Code churn</p><h2>Most lines touched</h2></div><span class="hint">additions + deletions · 52w</span></div>
-        <div id="churnRanking" class="rank-chart loading">Loading…</div>
-      </article>
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Commit gravity</p><h2>Most commits</h2></div><span class="hint">52w</span></div><div id="commitRanking" class="rank-chart loading">Loading…</div></article>
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Branch forest</p><h2>Most branches</h2></div><span class="hint">all heads</span></div><div id="branchRanking" class="rank-chart loading">Loading…</div></article>
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Code churn</p><h2>Most lines touched</h2></div><span class="hint">add + delete · 52w</span></div><div id="churnRanking" class="rank-chart loading">Loading…</div></article>
     </section>
 
     <section class="panel panel-wide">
-      <div class="panel-head">
-        <div><p class="kicker">Work-style map</p><h2>Commit frequency × change breadth</h2></div>
-        <span class="hint">x: commits · y: avg files/commit · dot size: code churn</span>
-      </div>
+      <div class="panel-head"><div><p class="kicker">Branch forest</p><h2>Branch topology</h2></div><span class="hint">tip age · default branch marked</span></div>
+      <div id="branchForest" class="branch-forest loading">Loading branch refs…</div>
+    </section>
+
+    <section class="grid grid-2">
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Commit clock</p><h2>When commits land</h2></div><span class="hint">UTC · 52w</span></div><div id="commitClock" class="column-chart loading">Loading…</div></article>
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Week rhythm</p><h2>Commits by day</h2></div><span class="hint">UTC · 52w</span></div><div id="dayChart" class="rank-chart loading">Loading…</div></article>
+    </section>
+
+    <section class="grid grid-2">
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Commit anatomy</p><h2>Change-size distribution</h2></div><span class="hint">lines touched / commit</span></div><div id="sizeHistogram" class="histogram loading">Loading…</div></article>
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Commit message DNA</p><h2>Message types</h2></div><span class="hint">Conventional Commit prefixes + merge/other</span></div><div id="messageDNA" class="dna-chart loading">Loading…</div></article>
+    </section>
+
+    <section class="grid grid-2">
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Project lifecycle</p><h2>Active / cooling / dormant</h2></div><span class="hint">last push: ≤30d / ≤90d / older</span></div><div id="lifecycle" class="lifecycle loading">Loading…</div></article>
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Language landscape</p><h2>Code by language</h2></div><span class="hint">GitHub Linguist bytes</span></div><div id="languageChart" class="language-chart loading">Loading…</div></article>
+    </section>
+
+    <section class="grid grid-2">
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Pull requests</p><h2>PR outcomes</h2></div><span class="hint">lifetime repository totals</span></div><div id="prOutcomes" class="outcome-chart loading">Loading…</div></article>
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Issues</p><h2>Open vs closed</h2></div><span class="hint">lifetime repository totals</span></div><div id="issueOutcomes" class="outcome-chart loading">Loading…</div></article>
+    </section>
+
+    <section class="grid grid-3">
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Release trail</p><h2>Most tags</h2></div><span class="hint">all tags</span></div><div id="tagRanking" class="rank-chart loading">Loading…</div></article>
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Shipping</p><h2>Most releases</h2></div><span class="hint">GitHub releases</span></div><div id="releaseRanking" class="rank-chart loading">Loading…</div></article>
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Merge culture</p><h2>Highest PR merge rate</h2></div><span class="hint">decided PRs · min 3</span></div><div id="mergeRateRanking" class="rank-chart loading">Loading…</div></article>
+    </section>
+
+    <section class="panel panel-wide">
+      <div class="panel-head"><div><p class="kicker">Work-style map</p><h2>Commit frequency × change breadth</h2></div><span class="hint">x: commits · y: files/commit · dot: churn</span></div>
       <div id="workStyleMap" class="scatter-chart loading">Loading…</div>
     </section>
 
     <section class="grid grid-2">
-      <article class="panel">
-        <div class="panel-head"><div><p class="kicker">Push / pull</p><h2>Additions vs deletions</h2></div><span class="hint">top churn repositories</span></div>
-        <div id="balanceChart" class="balance-chart loading">Loading…</div>
-      </article>
-      <article class="panel">
-        <div class="panel-head"><div><p class="kicker">Consistency score</p><h2>Active weeks</h2></div><span class="hint">weeks with ≥1 commit</span></div>
-        <div id="consistencyChart" class="rank-chart loading">Loading…</div>
-      </article>
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Push / pull</p><h2>Additions vs deletions</h2></div><span class="hint">top churn repositories</span></div><div id="balanceChart" class="balance-chart loading">Loading…</div></article>
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Consistency</p><h2>Active weeks</h2></div><span class="hint">weeks with ≥1 commit</span></div><div id="consistencyChart" class="rank-chart loading">Loading…</div></article>
+    </section>
+
+    <section class="grid grid-3">
+      <article class="panel"><div class="panel-head"><div><p class="kicker">File storm</p><h2>Most files touched</h2></div><span class="hint">52w</span></div><div id="fileRanking" class="rank-chart loading">Loading…</div></article>
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Change surface</p><h2>Files / commit</h2></div><span class="hint">52w average</span></div><div id="filesPerCommitChart" class="rank-chart loading">Loading…</div></article>
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Commit weight</p><h2>Lines / commit</h2></div><span class="hint">52w average</span></div><div id="linesPerCommitChart" class="rank-chart loading">Loading…</div></article>
     </section>
 
     <section class="grid grid-2">
-      <article class="panel">
-        <div class="panel-head"><div><p class="kicker">Change surface</p><h2>Files touched per commit</h2></div><span class="hint">broad vs surgical commits</span></div>
-        <div id="filesPerCommitChart" class="rank-chart loading">Loading…</div>
-      </article>
-      <article class="panel">
-        <div class="panel-head"><div><p class="kicker">Commit weight</p><h2>Lines touched per commit</h2></div><span class="hint">52w average</span></div>
-        <div id="linesPerCommitChart" class="rank-chart loading">Loading…</div>
-      </article>
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Repo pulse</p><h2>Weekly commits</h2></div><span class="hint">all tracked repositories</span></div><div id="weeklyTrend" class="svg-chart loading">Loading…</div></article>
+      <article class="panel"><div class="panel-head"><div><p class="kicker">Velocity</p><h2>Commits per 30 days of age</h2></div><span class="hint">lifetime average</span></div><div id="velocityChart" class="rank-chart loading">Loading…</div></article>
     </section>
 
-    <section class="grid grid-2">
-      <article class="panel">
-        <div class="panel-head"><div><p class="kicker">Repo pulse</p><h2>Weekly commits</h2></div><span class="hint">all tracked repositories</span></div>
-        <div id="weeklyTrend" class="svg-chart loading">Loading…</div>
-      </article>
-      <article class="panel">
-        <div class="panel-head"><div><p class="kicker">Velocity</p><h2>Commits per 30 days of repo age</h2></div><span class="hint">lifetime average</span></div>
-        <div id="velocityChart" class="rank-chart loading">Loading…</div>
-      </article>
-    </section>
+    <section class="panel"><div class="panel-head"><div><p class="kicker">Repository fingerprints</p><h2>Outliers & oddities</h2></div><span class="hint">automatically derived</span></div><div id="fingerprints" class="fingerprint-grid loading">Loading…</div></section>
 
     <section class="panel">
-      <div class="panel-head"><div><p class="kicker">Repository fingerprints</p><h2>Outliers</h2></div><span class="hint">automatically derived</span></div>
-      <div id="fingerprints" class="fingerprint-grid loading">Loading…</div>
+      <div class="panel-head table-head"><div><p class="kicker">All repositories</p><h2>Deep stats table</h2></div><div class="table-controls"><input id="repoSearch" type="search" placeholder="Filter repositories…" aria-label="Filter repositories" /><select id="repoSort" aria-label="Sort repositories"><option value="commits52">52w commits</option><option value="branchCount">branches</option><option value="churn52">52w churn</option><option value="fileTouches52">files touched</option><option value="mergeShare52">merge share</option><option value="prMergeRate">PR merge rate</option><option value="tagCount">tags</option><option value="releaseCount">releases</option><option value="consistency">consistency</option><option value="pushedAt">recently pushed</option><option value="name">name</option></select></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Repository</th><th>Branch</th><th>52w commits</th><th>Branches</th><th>Tags</th><th>Releases</th><th>Churn</th><th>Merge commits</th><th>PR merge</th><th>State</th><th>Last push</th></tr></thead><tbody id="repoTableBody"><tr><td colspan="11">Loading…</td></tr></tbody></table></div>
     </section>
 
-    <section class="panel">
-      <div class="panel-head table-head">
-        <div><p class="kicker">All repositories</p><h2>Deep stats table</h2></div>
-        <div class="table-controls">
-          <input id="repoSearch" type="search" placeholder="Filter repositories…" aria-label="Filter repositories" />
-          <select id="repoSort" aria-label="Sort repositories">
-            <option value="commits52">52w commits</option>
-            <option value="fileTouches52">files touched</option>
-            <option value="churn52">52w churn</option>
-            <option value="filesPerCommit52">files / commit</option>
-            <option value="linesPerCommit52">lines / commit</option>
-            <option value="consistency">consistency</option>
-            <option value="lifetimeCommits">lifetime commits</option>
-            <option value="pushedAt">recently pushed</option>
-            <option value="name">name</option>
-          </select>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Repository</th><th>Commits</th><th>File touches</th><th>Lines touched</th><th>Files/commit</th><th>Consistency</th><th>Peak week</th><th>Last push</th></tr></thead>
-          <tbody id="repoTableBody"><tr><td colspan="8">Loading…</td></tr></tbody>
-        </table>
-      </div>
-    </section>
-
-    <p class="footnote">* All commit, lifetime, line-churn and changed-file metrics come from GitHub GraphQL default-branch linear history. The 52-week views use a rolling 52-week window. Commits that exist only on unmerged branches are intentionally excluded. “Files touched” sums each commit’s changed-file count; commits where GitHub cannot calculate that value are excluded from files/commit averages.</p>
+    <p class="footnote">Commit telemetry uses GitHub GraphQL default-branch linear history. Branch counts are exact; branch-tip age details sample up to 100 heads per repository. Commit time charts are UTC. PR/issue/tag/release totals are repository-wide GraphQL metadata. Forked and archived repositories are excluded.</p>
   </main>
   <script type="module" src="app.js"></script>
 </body>
