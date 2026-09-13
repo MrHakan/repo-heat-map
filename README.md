@@ -1,35 +1,32 @@
 # repo-heat-map
 
-A small, dependency-free GitHub Pages dashboard for visualising repository activity and useful account-level repository statistics for **MrHakan**.
+A dependency-free GitHub Pages **repository activity atlas** for `MrHakan`.
 
-**Live site:** https://mrhakan.github.io/repo-heat-map/
+It goes beyond stars/forks and precomputes deeper public-repository telemetry during deployment using GitHub Actions:
 
-## What it shows
+- repository × week commit heat map
+- most commits in the last 52 weeks
+- code churn (`additions + deletions`) in the last 52 weeks
+- additions vs deletions balance
+- active-week consistency score
+- weekly commit pulse across all tracked repositories
+- lifetime commit estimate from GitHub contributor stats
+- commit velocity normalized by repository age
+- automatically derived repository fingerprints/outliers
+- sortable deep-stats table
 
-- Repository commit heat map for the 12 most recently active repositories (last 52 weeks)
-- Weekly commit trend aggregated from the tracked repositories
-- Repository totals: public repos, stars, forks, open issues, active repositories
-- Primary-language distribution
-- Most-starred repositories
-- Searchable/sortable repository table
-- Recent repository activity
+The heavy GitHub API work runs in Actions with `GITHUB_TOKEN`, so the public page itself stays static, fast, and does not burn through a visitor's unauthenticated API rate limit.
 
-The dashboard uses GitHub's public REST API directly in the browser and caches responses locally to reduce API usage. No analytics, trackers, frameworks, or build step are used.
+## Data refresh
 
-## Run locally
+`.github/workflows/pages.yml` rebuilds the analytics JSON and deploys the site:
 
-Serve the repository with any static web server, for example:
+- on pushes to `main`
+- manually via `workflow_dispatch`
+- once per day via cron
 
-```bash
-python -m http.server 8000
-```
+Generated data lives in the deployment artifact at `data/stats.json`.
 
-Then open `http://localhost:8000`.
+## Live
 
-## GitHub Pages
-
-This repository includes a Pages workflow. In **Settings → Pages**, set the source to **GitHub Actions** if it is not already selected. Pushes to `main` will deploy automatically.
-
-## Notes
-
-GitHub's unauthenticated API has a rate limit. The app caches repository data and commit statistics in `localStorage`; use the refresh control only when needed.
+https://mrhakan.github.io/repo-heat-map/
