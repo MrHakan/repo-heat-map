@@ -1,158 +1,53 @@
-const fmt = new Intl.NumberFormat('en-US');
-const compact = new Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:1});
-const dateFmt = new Intl.DateTimeFormat('en',{month:'short',day:'numeric',year:'numeric'});
-const monthFmt = new Intl.DateTimeFormat('en',{month:'short'});
+const fmt=new Intl.NumberFormat('en-US');
+const compact=new Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:1});
+const dateFmt=new Intl.DateTimeFormat('en',{month:'short',day:'numeric',year:'numeric'});
+const monthFmt=new Intl.DateTimeFormat('en',{month:'short'});
+const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 let data={generatedAt:null,totals:{},repos:[]};
-const $=(s)=>document.querySelector(s);
+const $=s=>document.querySelector(s);
 const esc=(s='')=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
-const num=(n)=>fmt.format(Number(n)||0);
-const cnum=(n)=>compact.format(Number(n)||0);
-const day=(v)=>v?dateFmt.format(new Date(v)):'—';
+const num=n=>fmt.format(Number(n)||0),cnum=n=>compact.format(Number(n)||0),day=v=>v?dateFmt.format(new Date(v)):'—';
 
-async function load(){
-  try{
-    const res=await fetch(`data/stats.json?v=${Date.now()}`,{cache:'no-store'});
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    data=await res.json();
-    render();
-  }catch(err){
-    document.querySelectorAll('.loading').forEach(el=>el.textContent=`Stats unavailable: ${err.message}`);
-  }
-}
+async function load(){try{const res=await fetch(`data/stats.json?v=${Date.now()}`,{cache:'no-store'});if(!res.ok)throw new Error(`HTTP ${res.status}`);data=await res.json();render()}catch(err){document.querySelectorAll('.loading').forEach(el=>el.textContent=`Stats unavailable: ${err.message}`)}}
 
 function render(){
-  $('#generatedAt').textContent=data.generatedAt?`updated ${day(data.generatedAt)}`:'deep stats pending';
-  $('#metricRepos').textContent=num(data.totals.repos);
-  $('#metricCommits52').textContent=num(data.totals.commits52);
-  $('#metricFiles').textContent=cnum(data.totals.fileTouches52);
-  $('#metricLifetime').textContent=num(data.totals.lifetimeCommits);
-  $('#metricChurn').textContent=cnum(data.totals.churn52);
-  $('#metricNet').textContent=`${(data.totals.additions52||0)-(data.totals.deletions52||0)>=0?'+':''}${cnum((data.totals.additions52||0)-(data.totals.deletions52||0))}`;
-
-  renderHeatmap();
-  rank('#commitRanking','commits52',10,(v)=>num(v));
-  rank('#fileRanking','fileTouches52',10,(v,r)=>`${cnum(v)}${r.fileTouchesCapped?' +':''}`);
-  rank('#churnRanking','churn52',10,(v)=>cnum(v));
-  renderWorkStyleMap();
-  balance();
-  rank('#consistencyChart','consistency',10,(v)=>`${v}%`);
-  rank('#filesPerCommitChart','filesPerCommit52',10,(v)=>Number(v).toFixed(1));
-  rank('#linesPerCommitChart','linesPerCommit52',10,(v)=>cnum(v));
-  trend();
-  rank('#velocityChart','commitsPer30DaysOfAge',10,(v)=>Number(v).toFixed(1));
-  fingerprints();
-  table();
-  $('#repoSearch').addEventListener('input',table);
-  $('#repoSort').addEventListener('change',table);
+  const t=data.totals||{};
+  $('#generatedAt').textContent=data.generatedAt?`updated ${day(data.generatedAt)}`:'telemetry pending';
+  $('#metricRepos').textContent=num(t.repos);$('#metricCommits52').textContent=num(t.commits52);$('#metricBranches').textContent=num(t.branches);
+  $('#metricTagsReleases').textContent=`${num(t.tags)} / ${num(t.releases)}`;$('#metricFiles').textContent=cnum(t.fileTouches52);$('#metricChurn').textContent=cnum(t.churn52);
+  $('#metricMergedPRs').textContent=num(t.mergedPRs);$('#metricMergeShare').textContent=`${Number(t.mergeShare52||0).toFixed(1)}%`;
+  renderHeatmap();rank('#commitRanking','commits52',9,v=>num(v));rank('#branchRanking','branchCount',9,v=>num(v));rank('#churnRanking','churn52',9,v=>cnum(v));
+  branchForest();commitClock();dayChart();sizeHistogram();messageDNA();lifecycle();languageChart();outcomes();
+  rank('#tagRanking','tagCount',8,v=>num(v));rank('#releaseRanking','releaseCount',8,v=>num(v));
+  rank('#mergeRateRanking','prMergeRate',8,v=>`${Number(v).toFixed(0)}%`,r=>(r.mergedPRs||0)+(r.closedPRs||0)>=3);
+  renderWorkStyleMap();balance();rank('#consistencyChart','consistency',9,v=>`${v}%`);rank('#fileRanking','fileTouches52',9,v=>cnum(v));
+  rank('#filesPerCommitChart','filesPerCommit52',9,v=>Number(v).toFixed(1));rank('#linesPerCommitChart','linesPerCommit52',9,v=>cnum(v));trend();rank('#velocityChart','commitsPer30DaysOfAge',9,v=>Number(v).toFixed(1));fingerprints();table();
+  $('#repoSearch').addEventListener('input',table);$('#repoSort').addEventListener('change',table);
 }
 
-function tracked(){return data.repos.filter(r=>r.weeks?.length).sort((a,b)=>b.commits52-a.commits52).slice(0,16)}
+function rank(sel,key,count,format,filter=()=>true){const root=$(sel);root.classList.remove('loading');const rows=[...data.repos].filter(r=>filter(r)&&(Number(r[key])||0)>0).sort((a,b)=>(b[key]||0)-(a[key]||0)).slice(0,count);if(!rows.length){root.textContent='No data.';return}const max=rows[0][key]||1;root.innerHTML=rows.map(r=>`<div class="rank-row"><a class="rank-name" href="${esc(r.url)}">${esc(r.name)}</a><div class="bar"><i style="width:${Math.max(2,(r[key]/max)*100)}%"></i></div><span class="rank-value">${format(r[key],r)}</span></div>`).join('')}
 function normalizeWeeks(weeks){const a=(weeks||[]).slice(-52);return [...Array.from({length:Math.max(0,52-a.length)},()=>({week:null,total:0})),...a]}
 function heatLevel(v,max){if(!v||!max)return 0;const q=v/max;return q<=.25?1:q<=.5?2:q<=.75?3:4}
-function renderHeatmap(){
-  const root=$('#heatmap'),repos=tracked();root.classList.remove('loading');
-  if(!repos.length){root.textContent='No deep commit statistics yet. Trigger the analytics workflow once.';return}
-  const seed=normalizeWeeks(repos.find(r=>r.weeks.length)?.weeks||[]);
-  const dates=seed.map((w,i)=>w.week?new Date(w.week*1000):new Date(Date.now()-(51-i)*604800000));
-  let html='<div class="heatmap"><div></div>'+dates.map((d,i)=>`<div class="heat-month">${i===0||d.getMonth()!==dates[i-1].getMonth()?monthFmt.format(d):''}</div>`).join('');
-  for(const r of repos){
-    const weeks=normalizeWeeks(r.weeks),max=Math.max(0,...weeks.map(w=>w.total||0));
-    html+=`<div class="heat-label"><a href="${esc(r.url)}">${esc(r.name)}</a></div>`;
-    for(let i=0;i<52;i++){
-      const w=weeks[i],title=`${r.name}: ${w.total||0} commits · week of ${day(dates[i])}`;
-      html+=`<span class="heat-cell" data-level="${heatLevel(w.total||0,max)}" title="${esc(title)}"></span>`;
-    }
-  }
-  root.innerHTML=html+'</div>';
-}
+function renderHeatmap(){const root=$('#heatmap'),repos=data.repos.filter(r=>r.weeks?.length).sort((a,b)=>b.commits52-a.commits52).slice(0,16);root.classList.remove('loading');if(!repos.length){root.textContent='No commit history.';return}const seed=normalizeWeeks(repos[0].weeks),dates=seed.map((w,i)=>w.week?new Date(w.week*1000):new Date(Date.now()-(51-i)*604800000));let html='<div class="heatmap"><div></div>'+dates.map((d,i)=>`<div class="heat-month">${i===0||d.getMonth()!==dates[i-1].getMonth()?monthFmt.format(d):''}</div>`).join('');for(const r of repos){const weeks=normalizeWeeks(r.weeks),max=Math.max(0,...weeks.map(w=>w.total||0));html+=`<div class="heat-label"><a href="${esc(r.url)}">${esc(r.name)}</a></div>`;for(let i=0;i<52;i++){const w=weeks[i];html+=`<span class="heat-cell" data-level="${heatLevel(w.total||0,max)}" title="${esc(`${r.name}: ${w.total||0} commits · week of ${day(dates[i])}`)}"></span>`}}root.innerHTML=html+'</div>'}
 
-function rank(sel,key,count,format){
-  const root=$(sel);root.classList.remove('loading');
-  const rows=[...data.repos].filter(r=>(Number(r[key])||0)>0).sort((a,b)=>(b[key]||0)-(a[key]||0)).slice(0,count);
-  if(!rows.length){root.textContent='No data yet.';return}
-  const max=rows[0][key]||1;
-  root.innerHTML=rows.map(r=>`<div class="rank-row"><a class="rank-name" href="${esc(r.url)}">${esc(r.name)}</a><div class="bar"><i style="width:${Math.max(2,(r[key]/max)*100)}%"></i></div><span class="rank-value">${format(r[key],r)}</span></div>`).join('');
-}
+function branchState(b){if(b.isDefault)return'default';if(b.ageDays===null)return'unknown';if(b.ageDays<=30)return'active';if(b.ageDays<=90)return'cooling';return'stale'}
+function branchForest(){const root=$('#branchForest');root.classList.remove('loading');const rows=[...data.repos].filter(r=>r.branchCount>0).sort((a,b)=>b.branchCount-a.branchCount).slice(0,10);if(!rows.length){root.textContent='No branch data.';return}root.innerHTML=rows.map(r=>`<div class="branch-row"><div class="branch-meta"><a href="${esc(r.url)}">${esc(r.name)}</a><span>${num(r.branchCount)} branch${r.branchCount===1?'':'es'}${r.branchSampleCapped?' · sampled':''}</span></div><div class="branch-pills">${(r.branchSamples||[]).slice(0,12).map(b=>`<span class="branch-pill ${branchState(b)}" title="${esc(`${b.name} · ${b.ageDays===null?'unknown tip age':`${b.ageDays}d since tip commit`}`)}">${b.isDefault?'◆':'•'} ${esc(b.name)}${b.ageDays!==null?` · ${b.ageDays}d`:''}</span>`).join('')}${r.branchCount>(r.branchSamples||[]).slice(0,12).length?`<span class="branch-more">+${r.branchCount-Math.min(r.branchCount,12)} more</span>`:''}</div></div>`).join('')}
 
-function renderWorkStyleMap(){
-  const root=$('#workStyleMap');root.classList.remove('loading');
-  const rows=data.repos.filter(r=>(r.commits52||0)>0&&(r.filesPerCommit52||0)>0);
-  if(!rows.length){root.textContent='File-change telemetry is not available yet.';return}
+function commitClock(){const root=$('#commitClock');root.classList.remove('loading');const vals=data.totals.commitHoursUtc||[];if(!vals.some(Boolean)){root.textContent='No commit-time data.';return}const max=Math.max(1,...vals);root.innerHTML=`<div class="columns">${vals.map((v,i)=>`<div class="column-wrap" title="${String(i).padStart(2,'0')}:00–${String((i+1)%24).padStart(2,'0')}:00 UTC · ${num(v)} commits"><div class="column" style="height:${Math.max(3,(v/max)*100)}%"></div><span>${i%3===0?String(i).padStart(2,'0'):''}</span></div>`).join('')}</div><div class="micro-stats"><span>night 00–05 UTC <b>${Number(data.totals.nightShareUtc52||0).toFixed(1)}%</b></span><span>weekend <b>${Number(data.totals.weekendShare52||0).toFixed(1)}%</b></span></div>`}
+function dayChart(){const root=$('#dayChart');root.classList.remove('loading');const vals=data.totals.commitDaysUtc||[];const max=Math.max(1,...vals);root.innerHTML=vals.map((v,i)=>`<div class="rank-row"><span class="rank-name">${DOW[i]}</span><div class="bar"><i style="width:${(v/max)*100}%"></i></div><span class="rank-value">${num(v)}</span></div>`).join('')}
+function sizeHistogram(){const root=$('#sizeHistogram');root.classList.remove('loading');const vals=data.totals.commitSizeBuckets||[],labels=data.totals.commitSizeLabels||[];if(!vals.some(Boolean)){root.textContent='No size data.';return}const max=Math.max(1,...vals);root.innerHTML=`<div class="hist-bars">${vals.map((v,i)=>`<div class="hist-item" title="${labels[i]} lines · ${num(v)} commits"><span>${num(v)}</span><div class="hist-bar" style="height:${Math.max(4,(v/max)*100)}%"></div><small>${esc(labels[i])}</small></div>`).join('')}</div>`}
+function messageDNA(){const root=$('#messageDNA');root.classList.remove('loading');const counts=data.totals.commitTypeCounts||{},entries=Object.entries(counts).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]),total=entries.reduce((s,[,v])=>s+v,0);if(!total){root.textContent='No message data.';return}root.innerHTML=`<div class="dna-stack">${entries.map(([k,v])=>`<i class="dna-${k}" style="width:${(v/total)*100}%" title="${k}: ${num(v)}"></i>`).join('')}</div><div class="dna-legend">${entries.map(([k,v])=>`<span><b class="dna-dot dna-${k}"></b>${esc(k)} <small>${((v/total)*100).toFixed(1)}%</small></span>`).join('')}</div><div class="micro-stats"><span>conventional <b>${Number(data.totals.conventionalShare52||0).toFixed(1)}%</b></span><span>merge commits <b>${Number(data.totals.mergeShare52||0).toFixed(1)}%</b></span></div>`}
 
-  const w=980,h=360,p={t:22,r:28,b:44,l:58};
-  const iw=w-p.l-p.r,ih=h-p.t-p.b;
-  const maxX=Math.max(1,...rows.map(r=>r.commits52||0));
-  const maxY=Math.max(1,...rows.map(r=>r.filesPerCommit52||0));
-  const maxChurn=Math.max(1,...rows.map(r=>r.churn52||0));
-  const x=v=>p.l+(v/maxX)*iw;
-  const y=v=>p.t+ih-(v/maxY)*ih;
-  const radius=v=>4+Math.sqrt((v||0)/maxChurn)*11;
-  const grid=[.25,.5,.75,1].map(q=>`<line class="gridline" x1="${p.l}" x2="${w-p.r}" y1="${p.t+ih-q*ih}" y2="${p.t+ih-q*ih}"/><line class="gridline" y1="${p.t}" y2="${p.t+ih}" x1="${p.l+q*iw}" x2="${p.l+q*iw}"/>`).join('');
-  const yLabels=[0,.25,.5,.75,1].map(q=>`<text class="axis-label" text-anchor="end" x="${p.l-8}" y="${p.t+ih-q*ih+3}">${(maxY*q).toFixed(maxY<10?1:0)}</text>`).join('');
-  const xLabels=[0,.25,.5,.75,1].map(q=>`<text class="axis-label" text-anchor="middle" x="${p.l+q*iw}" y="${h-12}">${Math.round(maxX*q)}</text>`).join('');
+function lifecycle(){const root=$('#lifecycle');root.classList.remove('loading');const l=data.totals.lifecycle||{},total=(l.active||0)+(l.cooling||0)+(l.dormant||0)||1;root.innerHTML=`<div class="segment"><i class="seg-active" style="width:${(l.active||0)/total*100}%"></i><i class="seg-cooling" style="width:${(l.cooling||0)/total*100}%"></i><i class="seg-dormant" style="width:${(l.dormant||0)/total*100}%"></i></div><div class="lifecycle-cards"><div><strong>${num(l.active)}</strong><span>active ≤30d</span></div><div><strong>${num(l.cooling)}</strong><span>cooling 31–90d</span></div><div><strong>${num(l.dormant)}</strong><span>dormant &gt;90d</span></div></div>`}
+function languageChart(){const root=$('#languageChart');root.classList.remove('loading');const langs=(data.totals.languages||[]).slice(0,10),total=langs.reduce((s,l)=>s+(l.bytes||0),0);if(!total){root.textContent='No language data.';return}root.innerHTML=langs.map(l=>`<div class="language-row"><span>${esc(l.name)}</span><div class="bar"><i style="width:${(l.bytes/total)*100}%;${l.color?`background:${esc(l.color)}`:''}"></i></div><small>${((l.bytes/total)*100).toFixed(1)}%</small></div>`).join('')}
+function outcomeBlock(rootId,items){const root=$(rootId);root.classList.remove('loading');const total=items.reduce((s,x)=>s+x.value,0);if(!total){root.textContent='No data.';return}root.innerHTML=`<div class="outcome-stack">${items.map(x=>`<i class="${x.className}" style="width:${x.value/total*100}%" title="${x.label}: ${num(x.value)}"></i>`).join('')}</div><div class="outcome-list">${items.map(x=>`<div><span><b class="legend-dot ${x.className}"></b>${x.label}</span><strong>${num(x.value)}</strong></div>`).join('')}</div>`}
+function outcomes(){outcomeBlock('#prOutcomes',[{label:'merged',value:data.totals.mergedPRs||0,className:'out-merged'},{label:'closed unmerged',value:data.totals.closedPRs||0,className:'out-closed'},{label:'open',value:data.totals.openPRs||0,className:'out-open'}]);outcomeBlock('#issueOutcomes',[{label:'closed',value:data.totals.closedIssues||0,className:'out-merged'},{label:'open',value:data.totals.openIssues||0,className:'out-open'}])}
 
-  const points=rows.map(r=>{
-    const title=`${r.name} · ${num(r.commits52)} commits · ${Number(r.filesPerCommit52).toFixed(1)} files/commit · ${cnum(r.churn52)} lines touched`;
-    return `<a href="${esc(r.url)}"><circle class="scatter-dot" cx="${x(r.commits52)}" cy="${y(r.filesPerCommit52)}" r="${radius(r.churn52)}"><title>${esc(title)}</title></circle></a>`;
-  }).join('');
+function renderWorkStyleMap(){const root=$('#workStyleMap');root.classList.remove('loading');const rows=data.repos.filter(r=>(r.commits52||0)>0&&(r.filesPerCommit52||0)>0);if(!rows.length){root.textContent='No change telemetry.';return}const w=980,h=360,p={t:22,r:28,b:44,l:58},iw=w-p.l-p.r,ih=h-p.t-p.b,maxX=Math.max(1,...rows.map(r=>r.commits52||0)),maxY=Math.max(1,...rows.map(r=>r.filesPerCommit52||0)),maxChurn=Math.max(1,...rows.map(r=>r.churn52||0)),x=v=>p.l+(v/maxX)*iw,y=v=>p.t+ih-(v/maxY)*ih,radius=v=>4+Math.sqrt((v||0)/maxChurn)*11;const grid=[.25,.5,.75,1].map(q=>`<line class="gridline" x1="${p.l}" x2="${w-p.r}" y1="${p.t+ih-q*ih}" y2="${p.t+ih-q*ih}"/><line class="gridline" y1="${p.t}" y2="${p.t+ih}" x1="${p.l+q*iw}" x2="${p.l+q*iw}"/>`).join(''),yLabels=[0,.25,.5,.75,1].map(q=>`<text class="axis-label" text-anchor="end" x="${p.l-8}" y="${p.t+ih-q*ih+3}">${(maxY*q).toFixed(maxY<10?1:0)}</text>`).join(''),xLabels=[0,.25,.5,.75,1].map(q=>`<text class="axis-label" text-anchor="middle" x="${p.l+q*iw}" y="${h-12}">${Math.round(maxX*q)}</text>`).join('');const points=rows.map(r=>`<a href="${esc(r.url)}"><circle class="scatter-dot" cx="${x(r.commits52)}" cy="${y(r.filesPerCommit52)}" r="${radius(r.churn52)}"><title>${esc(`${r.name} · ${num(r.commits52)} commits · ${Number(r.filesPerCommit52).toFixed(1)} files/commit · ${cnum(r.churn52)} lines`)}</title></circle></a>`).join('');const labels=[...rows].sort((a,b)=>(b.commits52*b.filesPerCommit52)-(a.commits52*a.filesPerCommit52)).slice(0,6).map(r=>`<text class="scatter-label" x="${Math.min(w-p.r-70,x(r.commits52)+10)}" y="${Math.max(14,y(r.filesPerCommit52)-8)}">${esc(r.name)}</text>`).join('');root.innerHTML=`<svg viewBox="0 0 ${w} ${h}">${grid}${yLabels}${xLabels}<text class="axis-title" x="${p.l+iw/2}" y="${h-1}" text-anchor="middle">commits · 52 weeks</text><text class="axis-title" transform="translate(12 ${p.t+ih/2}) rotate(-90)" text-anchor="middle">files touched / commit</text>${points}${labels}</svg>`}
+function balance(){const root=$('#balanceChart');root.classList.remove('loading');const rows=[...data.repos].filter(r=>r.churn52>0).sort((a,b)=>b.churn52-a.churn52).slice(0,8);if(!rows.length){root.textContent='No churn data.';return}root.innerHTML=rows.map(r=>{const t=r.churn52||1,a=(r.additions52/t)*100;return`<div class="balance-row"><div class="balance-name">${esc(r.name)}</div><div><div class="balance-stack"><i class="balance-add" style="width:${a}%"></i><i class="balance-del" style="width:${100-a}%"></i></div><div class="balance-meta"><span>+${cnum(r.additions52)}</span><span>−${cnum(r.deletions52)}</span></div></div></div>`}).join('')}
+function weeklyTotals(){const totals=Array(52).fill(0);for(const r of data.repos)normalizeWeeks(r.weeks).forEach((w,i)=>totals[i]+=w.total||0);return totals}
+function trend(){const root=$('#weeklyTrend');root.classList.remove('loading');const vals=weeklyTotals();if(!vals.some(Boolean)){root.textContent='No weekly data.';return}const w=640,h=230,p={t:10,r:8,b:28,l:34},iw=w-p.l-p.r,ih=h-p.t-p.b,max=Math.max(1,...vals),x=i=>p.l+(i/51)*iw,y=v=>p.t+ih-(v/max)*ih,pts=vals.map((v,i)=>[x(i),y(v)]),line=pts.map(([a,b],i)=>`${i?'L':'M'}${a.toFixed(1)},${b.toFixed(1)}`).join(' '),area=`${line} L${x(51)},${p.t+ih} L${x(0)},${p.t+ih} Z`,grid=[0,.5,1].map(q=>{const gy=p.t+ih-q*ih;return`<line class="gridline" x1="${p.l}" x2="${w-p.r}" y1="${gy}" y2="${gy}"/><text class="axis-label" x="0" y="${gy+3}">${Math.round(max*q)}</text>`}).join('');root.innerHTML=`<svg viewBox="0 0 ${w} ${h}">${grid}<path class="area" d="${area}"/><path class="trend" d="${line}"/></svg>`}
 
-  const labels=[...rows].sort((a,b)=>(b.commits52*b.filesPerCommit52)-(a.commits52*a.filesPerCommit52)).slice(0,6).map(r=>`<text class="scatter-label" x="${Math.min(w-p.r-70,x(r.commits52)+10)}" y="${Math.max(14,y(r.filesPerCommit52)-8)}">${esc(r.name)}</text>`).join('');
-
-  root.innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Repositories plotted by commit count and files touched per commit">${grid}${yLabels}${xLabels}<text class="axis-title" x="${p.l+iw/2}" y="${h-1}" text-anchor="middle">commits · 52 weeks</text><text class="axis-title" transform="translate(12 ${p.t+ih/2}) rotate(-90)" text-anchor="middle">files touched / commit</text>${points}${labels}</svg>`;
-}
-
-function balance(){
-  const root=$('#balanceChart');root.classList.remove('loading');
-  const rows=[...data.repos].filter(r=>r.churn52>0).sort((a,b)=>b.churn52-a.churn52).slice(0,8);
-  if(!rows.length){root.textContent='No code-frequency data yet.';return}
-  root.innerHTML=rows.map(r=>{
-    const t=r.churn52||1,a=(r.additions52/t)*100,d=100-a;
-    return `<div class="balance-row"><div class="balance-name">${esc(r.name)}</div><div><div class="balance-stack" title="+${num(r.additions52)} / -${num(r.deletions52)}"><i class="balance-add" style="width:${a}%"></i><i class="balance-del" style="width:${d}%"></i></div><div class="balance-meta"><span>+${cnum(r.additions52)}</span><span>−${cnum(r.deletions52)}</span></div></div></div>`;
-  }).join('');
-}
-
-function weeklyTotals(){
-  const totals=Array(52).fill(0);
-  for(const r of data.repos) normalizeWeeks(r.weeks).forEach((w,i)=>totals[i]+=w.total||0);
-  return totals;
-}
-
-function trend(){
-  const root=$('#weeklyTrend');root.classList.remove('loading');const vals=weeklyTotals();
-  if(!vals.some(Boolean)){root.textContent='No weekly data yet.';return}
-  const w=640,h=230,p={t:10,r:8,b:28,l:34},iw=w-p.l-p.r,ih=h-p.t-p.b,max=Math.max(1,...vals),x=i=>p.l+(i/51)*iw,y=v=>p.t+ih-(v/max)*ih;
-  const pts=vals.map((v,i)=>[x(i),y(v)]),line=pts.map(([a,b],i)=>`${i?'L':'M'}${a.toFixed(1)},${b.toFixed(1)}`).join(' '),area=`${line} L${x(51)},${p.t+ih} L${x(0)},${p.t+ih} Z`;
-  const grid=[0,.5,1].map(q=>{const gy=p.t+ih-q*ih;return `<line class="gridline" x1="${p.l}" x2="${w-p.r}" y1="${gy}" y2="${gy}"/><text class="axis-label" x="0" y="${gy+3}">${Math.round(max*q)}</text>`}).join('');
-  root.innerHTML=`<svg viewBox="0 0 ${w} ${h}">${grid}<path class="area" d="${area}"/><path class="trend" d="${line}"/></svg>`;
-}
-
-function fingerprints(){
-  const root=$('#fingerprints');root.classList.remove('loading');const usable=data.repos.filter(r=>r.name);
-  if(!usable.length){root.textContent='No data yet.';return}
-  const best=(key,filter=()=>true)=>[...usable].filter(filter).sort((a,b)=>(b[key]||0)-(a[key]||0))[0];
-  const oldest=[...usable].sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt))[0],newest=[...usable].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))[0];
-  const cards=[
-    ['commit magnet',best('commits52'),r=>`${num(r.commits52)} commits / 52w`],
-    ['file storm',best('fileTouches52'),r=>`${cnum(r.fileTouches52)} file touches`],
-    ['churn monster',best('churn52'),r=>`${cnum(r.churn52)} lines touched`],
-    ['widest commits',best('filesPerCommit52'),r=>`${Number(r.filesPerCommit52).toFixed(1)} files / commit`],
-    ['heaviest commits',best('linesPerCommit52'),r=>`${cnum(r.linesPerCommit52)} lines / commit`],
-    ['most consistent',best('consistency'),r=>`${r.consistency}% active weeks`],
-    ['peak week',best('peakWeekCommits'),r=>`${num(r.peakWeekCommits)} commits in one week`],
-    ['fastest velocity',best('commitsPer30DaysOfAge'),r=>`${Number(r.commitsPer30DaysOfAge).toFixed(1)} commits / 30d age`],
-    ['oldest repo',oldest,r=>`created ${day(r.createdAt)}`],
-    ['newest repo',newest,r=>`created ${day(r.createdAt)}`],
-    ['largest net growth',best('netLines52'),r=>`${r.netLines52>=0?'+':''}${cnum(r.netLines52)} net lines`],
-    ['most compact changes',best('commits52',r=>(r.filesPerCommit52||0)>0&&r.filesPerCommit52<=3),r=>`${Number(r.filesPerCommit52).toFixed(1)} files / commit`],
-  ];
-  root.innerHTML=cards.filter(([,r])=>r).map(([label,r,sub])=>`<article class="fingerprint"><span>${label}</span><strong title="${esc(r.name)}">${esc(r.name)}</strong><small>${sub(r)}</small></article>`).join('');
-}
-
-function table(){
-  const body=$('#repoTableBody'),q=($('#repoSearch')?.value||'').trim().toLowerCase(),sort=$('#repoSort')?.value||'commits52';
-  let rows=data.repos.filter(r=>!q||[r.name,r.description,r.language].filter(Boolean).some(v=>String(v).toLowerCase().includes(q)));
-  rows.sort((a,b)=>sort==='name'?a.name.localeCompare(b.name):sort==='pushedAt'?new Date(b.pushedAt)-new Date(a.pushedAt):(b[sort]||0)-(a[sort]||0));
-  body.innerHTML=rows.map(r=>`<tr><td><a class="repo-link" href="${esc(r.url)}">${esc(r.name)}</a></td><td>${num(r.commits52)}</td><td title="${r.fileTouchesCapped?'capped after 1,000 commits':''}">${cnum(r.fileTouches52)}${r.fileTouchesCapped?' +':''}</td><td>${cnum(r.churn52)}</td><td>${Number(r.filesPerCommit52||0).toFixed(1)}</td><td>${r.consistency||0}%</td><td>${num(r.peakWeekCommits)}</td><td>${day(r.pushedAt)}</td></tr>`).join('')||'<tr><td colspan="8">No matches.</td></tr>';
-}
-
+function fingerprints(){const root=$('#fingerprints');root.classList.remove('loading');const u=data.repos.filter(r=>r.name&&!r.analyticsError);if(!u.length){root.textContent='No data.';return}const best=(key,filter=()=>true)=>[...u].filter(filter).sort((a,b)=>(b[key]??-Infinity)-(a[key]??-Infinity))[0],oldest=[...u].sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt))[0],newest=[...u].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))[0],biggest=[...u].filter(r=>r.maxCommit52).sort((a,b)=>(b.maxCommit52?.lines||0)-(a.maxCommit52?.lines||0))[0];const cards=[['commit magnet',best('commits52'),r=>`${num(r.commits52)} commits / 52w`],['branch jungle',best('branchCount'),r=>`${num(r.branchCount)} branches`],['tag hoarder',best('tagCount'),r=>`${num(r.tagCount)} tags`],['release machine',best('releaseCount'),r=>`${num(r.releaseCount)} releases`],['churn monster',best('churn52'),r=>`${cnum(r.churn52)} lines touched`],['widest commits',best('filesPerCommit52'),r=>`${Number(r.filesPerCommit52).toFixed(1)} files / commit`],['biggest single commit',biggest,r=>`${cnum(r.maxCommit52.lines)} lines · ${r.maxCommit52.message}`],['longest streak',best('longestDailyStreak52'),r=>`${num(r.longestDailyStreak52)} consecutive days`],['most merge-heavy',best('mergeShare52',r=>r.commits52>=5),r=>`${Number(r.mergeShare52).toFixed(1)}% merge commits`],['most weekend-coded',best('weekendShare52',r=>r.commits52>=5),r=>`${Number(r.weekendShare52).toFixed(1)}% weekend commits`],['night owl · UTC',best('nightShareUtc52',r=>r.commits52>=5),r=>`${Number(r.nightShareUtc52).toFixed(1)}% at 00–05 UTC`],['best PR merge rate',best('prMergeRate',r=>(r.mergedPRs||0)+(r.closedPRs||0)>=3),r=>`${Number(r.prMergeRate).toFixed(1)}%`],['oldest repo',oldest,r=>`created ${day(r.createdAt)}`],['newest repo',newest,r=>`created ${day(r.createdAt)}`],['most consistent',best('consistency'),r=>`${r.consistency}% active weeks`],['fastest velocity',best('commitsPer30DaysOfAge'),r=>`${Number(r.commitsPer30DaysOfAge).toFixed(1)} commits / 30d age`]];root.innerHTML=cards.filter(([,r])=>r).map(([label,r,sub])=>`<article class="fingerprint"><span>${label}</span><strong title="${esc(r.name)}">${esc(r.name)}</strong><small title="${esc(sub(r))}">${esc(sub(r))}</small></article>`).join('')}
+function table(){const body=$('#repoTableBody'),q=($('#repoSearch')?.value||'').trim().toLowerCase(),sort=$('#repoSort')?.value||'commits52';let rows=data.repos.filter(r=>!q||[r.name,r.description,r.language,r.defaultBranch].filter(Boolean).some(v=>String(v).toLowerCase().includes(q)));rows.sort((a,b)=>sort==='name'?a.name.localeCompare(b.name):sort==='pushedAt'?new Date(b.pushedAt)-new Date(a.pushedAt):(Number(b[sort])||0)-(Number(a[sort])||0));body.innerHTML=rows.map(r=>`<tr><td><a class="repo-link" href="${esc(r.url)}">${esc(r.name)}</a></td><td>${esc(r.defaultBranch||'—')}</td><td>${num(r.commits52)}</td><td>${num(r.branchCount)}</td><td>${num(r.tagCount)}</td><td>${num(r.releaseCount)}</td><td>${cnum(r.churn52)}</td><td>${Number(r.mergeShare52||0).toFixed(1)}%</td><td>${r.prMergeRate===null||r.prMergeRate===undefined?'—':`${Number(r.prMergeRate).toFixed(0)}%`}</td><td><span class="state ${esc(r.activityState||'dormant')}">${esc(r.activityState||'—')}</span></td><td>${day(r.pushedAt)}</td></tr>`).join('')||'<tr><td colspan="11">No matches.</td></tr>'}
 load();
