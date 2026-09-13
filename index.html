@@ -1,155 +1,117 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light dark">
-  <meta name="description" content="Repository activity heat map and GitHub statistics for MrHakan.">
-  <title>repo heat map · MrHakan</title>
-  <link rel="preconnect" href="https://api.github.com">
-  <link rel="stylesheet" href="./styles.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="description" content="Repository activity atlas for MrHakan" />
+  <title>MrHakan · Repository Atlas</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="site-header">
-    <div class="shell header-inner">
-      <a class="brand" href="./" aria-label="repo heat map home">
-        <span class="brand-mark" aria-hidden="true">◫</span>
-        <span>repo heat map</span>
-      </a>
-      <nav class="header-actions" aria-label="Page controls">
-        <span id="apiStatus" class="api-status" title="GitHub API status">loading…</span>
-        <button id="refreshButton" class="button" type="button">refresh</button>
-        <a class="button" href="https://github.com/MrHakan" target="_blank" rel="noreferrer">github ↗</a>
-      </nav>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <div>
+        <a class="brand" href="https://github.com/MrHakan">MrHakan</a>
+        <span class="slash">/</span>
+        <span class="muted">repository-atlas</span>
+      </div>
+      <div class="top-actions">
+        <span id="generatedAt" class="status-pill">deep stats pending</span>
+        <a class="button" href="https://github.com/MrHakan/repo-heat-map">source</a>
+      </div>
     </div>
   </header>
 
   <main class="shell page">
-    <section class="intro" aria-labelledby="pageTitle">
-      <div>
-        <p class="eyebrow">github / MrHakan</p>
-        <h1 id="pageTitle">Repository activity</h1>
-        <p class="lede">A compact view of repository activity, commit history and public repo statistics.</p>
-      </div>
-      <div class="updated-wrap">
-        <span>updated</span>
-        <time id="updatedAt">—</time>
-      </div>
+    <section class="hero">
+      <p class="eyebrow">Repository telemetry</p>
+      <h1>What actually changed?</h1>
+      <p class="hero-copy">A compact atlas of commits, code churn, consistency, repo age and activity across my public GitHub repositories.</p>
     </section>
 
-    <section id="summary" class="stat-grid" aria-label="Repository summary">
-      <article class="stat"><span class="stat-label">public repos</span><strong id="repoCount">—</strong></article>
-      <article class="stat"><span class="stat-label">stars</span><strong id="starCount">—</strong></article>
-      <article class="stat"><span class="stat-label">forks</span><strong id="forkCount">—</strong></article>
-      <article class="stat"><span class="stat-label">open issues</span><strong id="issueCount">—</strong></article>
-      <article class="stat"><span class="stat-label">active · 90d</span><strong id="activeCount">—</strong></article>
+    <section class="stat-strip" aria-label="Summary metrics">
+      <article><span>repos</span><strong id="metricRepos">—</strong></article>
+      <article><span>commits · 52w</span><strong id="metricCommits52">—</strong></article>
+      <article><span>lifetime commits*</span><strong id="metricLifetime">—</strong></article>
+      <article><span>lines touched · 52w</span><strong id="metricChurn">—</strong></article>
+      <article><span>net lines · 52w</span><strong id="metricNet">—</strong></article>
     </section>
 
-    <section class="panel heat-panel" aria-labelledby="heatTitle">
+    <section class="panel panel-wide">
       <div class="panel-head">
         <div>
-          <p class="panel-kicker">last 52 weeks</p>
-          <h2 id="heatTitle">Repository commit heat map</h2>
+          <p class="kicker">Heat signature</p>
+          <h2>Repository commit heat map</h2>
         </div>
-        <div class="legend" aria-label="Commit intensity legend">
-          <span>less</span>
-          <i data-level="0"></i><i data-level="1"></i><i data-level="2"></i><i data-level="3"></i><i data-level="4"></i>
-          <span>more</span>
-        </div>
+        <span class="hint">52 weeks · darker means more commits</span>
       </div>
-      <p class="panel-note">Tracks up to 12 of the most recently active, non-archived repositories. Each cell is one week of repository commits.</p>
-      <div id="heatmapWrap" class="heatmap-wrap" aria-live="polite">
-        <div class="loading-block">loading commit activity…</div>
-      </div>
+      <div id="heatmap" class="scroll-region loading">Loading commit activity…</div>
     </section>
 
-    <section class="two-col">
-      <article class="panel" aria-labelledby="trendTitle">
-        <div class="panel-head compact">
-          <div>
-            <p class="panel-kicker">tracked repositories</p>
-            <h2 id="trendTitle">Weekly commits</h2>
-          </div>
-          <strong id="commitTotal" class="panel-number">—</strong>
-        </div>
-        <div id="trendChart" class="chart-area loading-block">loading…</div>
+    <section class="grid grid-2">
+      <article class="panel">
+        <div class="panel-head"><div><p class="kicker">Commit gravity</p><h2>Most commits</h2></div><span class="hint">last 52 weeks</span></div>
+        <div id="commitRanking" class="rank-chart loading">Loading…</div>
       </article>
-
-      <article class="panel" aria-labelledby="languageTitle">
-        <div class="panel-head compact">
-          <div>
-            <p class="panel-kicker">primary language</p>
-            <h2 id="languageTitle">Repository mix</h2>
-          </div>
-        </div>
-        <div id="languageChart" class="bar-list loading-block">loading…</div>
+      <article class="panel">
+        <div class="panel-head"><div><p class="kicker">Code churn</p><h2>Most lines touched</h2></div><span class="hint">additions + deletions · 52w</span></div>
+        <div id="churnRanking" class="rank-chart loading">Loading…</div>
       </article>
     </section>
 
-    <section class="two-col">
-      <article class="panel" aria-labelledby="starsTitle">
-        <div class="panel-head compact">
-          <div>
-            <p class="panel-kicker">public repositories</p>
-            <h2 id="starsTitle">Most starred</h2>
-          </div>
-        </div>
-        <div id="starChart" class="bar-list loading-block">loading…</div>
+    <section class="grid grid-2">
+      <article class="panel">
+        <div class="panel-head"><div><p class="kicker">Push / pull</p><h2>Additions vs deletions</h2></div><span class="hint">top churn repositories</span></div>
+        <div id="balanceChart" class="balance-chart loading">Loading…</div>
       </article>
-
-      <article class="panel" aria-labelledby="recentTitle">
-        <div class="panel-head compact">
-          <div>
-            <p class="panel-kicker">pushed recently</p>
-            <h2 id="recentTitle">Recent activity</h2>
-          </div>
-        </div>
-        <div id="recentList" class="recent-list loading-block">loading…</div>
+      <article class="panel">
+        <div class="panel-head"><div><p class="kicker">Consistency score</p><h2>Active weeks</h2></div><span class="hint">weeks with ≥1 commit</span></div>
+        <div id="consistencyChart" class="rank-chart loading">Loading…</div>
       </article>
     </section>
 
-    <section class="panel repos-panel" aria-labelledby="reposTitle">
-      <div class="panel-head repos-head">
-        <div>
-          <p class="panel-kicker">all public repositories</p>
-          <h2 id="reposTitle">Repositories</h2>
-        </div>
-        <div class="repo-controls">
-          <label class="search-wrap">
-            <span class="sr-only">Search repositories</span>
-            <input id="repoSearch" type="search" autocomplete="off" placeholder="filter repositories…">
-          </label>
+    <section class="grid grid-2">
+      <article class="panel">
+        <div class="panel-head"><div><p class="kicker">Repo pulse</p><h2>Weekly commits</h2></div><span class="hint">all tracked repositories</span></div>
+        <div id="weeklyTrend" class="svg-chart loading">Loading…</div>
+      </article>
+      <article class="panel">
+        <div class="panel-head"><div><p class="kicker">Velocity</p><h2>Commits per 30 days of repo age</h2></div><span class="hint">lifetime average</span></div>
+        <div id="velocityChart" class="rank-chart loading">Loading…</div>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><p class="kicker">Repository fingerprints</p><h2>Outliers</h2></div><span class="hint">automatically derived</span></div>
+      <div id="fingerprints" class="fingerprint-grid loading">Loading…</div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head table-head">
+        <div><p class="kicker">All repositories</p><h2>Deep stats table</h2></div>
+        <div class="table-controls">
+          <input id="repoSearch" type="search" placeholder="Filter repositories…" aria-label="Filter repositories" />
           <select id="repoSort" aria-label="Sort repositories">
-            <option value="updated">recently pushed</option>
-            <option value="stars">most starred</option>
-            <option value="forks">most forked</option>
+            <option value="commits52">52w commits</option>
+            <option value="churn52">52w churn</option>
+            <option value="consistency">consistency</option>
+            <option value="lifetimeCommits">lifetime commits</option>
+            <option value="pushedAt">recently pushed</option>
             <option value="name">name</option>
           </select>
         </div>
       </div>
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr><th>repository</th><th>language</th><th>stars</th><th>forks</th><th>pushed</th></tr>
-          </thead>
-          <tbody id="repoTableBody"><tr><td colspan="5" class="loading-cell">loading repositories…</td></tr></tbody>
+          <thead><tr><th>Repository</th><th>52w commits</th><th>Lines touched</th><th>Consistency</th><th>Peak week</th><th>Last push</th></tr></thead>
+          <tbody id="repoTableBody"><tr><td colspan="6">Loading…</td></tr></tbody>
         </table>
       </div>
     </section>
 
-    <section id="errorBox" class="error-box" hidden>
-      <strong>Could not load all GitHub data.</strong>
-      <span id="errorText"></span>
-    </section>
+    <p class="footnote">* Lifetime commits are based on GitHub contributor statistics for non-fork public repositories and can occasionally lag behind recent pushes.</p>
   </main>
-
-  <footer class="site-footer">
-    <div class="shell footer-inner">
-      <span>repo-heat-map</span>
-      <span>data from the public GitHub REST API · cached locally</span>
-    </div>
-  </footer>
-
-  <script src="./app.js" defer></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
